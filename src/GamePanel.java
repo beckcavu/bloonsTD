@@ -1,19 +1,19 @@
-import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.HashMap;
+import java.util.ArrayList;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 
+@SuppressWarnings("serial")
 public class GamePanel extends JPanel implements ActionListener{
 	
+	//Represents 1 bloon
 	public class bloon {
 		bloon(int rank_in, int X_in, int Y_in) {
 			rank = rank_in;
@@ -22,47 +22,33 @@ public class GamePanel extends JPanel implements ActionListener{
 			Y = Y_in;
 		}
 		public int rank, section, X, Y;
+		public Image sprite;
 	}
+	
+	//members
+	final int RED = 1;
+	final int BLUE = 2;
 	final int NUM_ROUNDS = 1;
-	//HashMap<Integer, bloon[]> round_map;
-	bloon[] round_1 = new bloon[5];
-	int[] locationsX = new int[5];
-	int[] locationsY = new int[5];
+	ArrayList<bloon> round_collection;
 	JButton start_round;
-	public int round;
+	public int round_in_play;
 	public int spawnX;
 	public int spawnY;
 	final public int BLOON_SIZE = 25;
 	public Boolean running = false;
-	public int section;
-	public Boolean build_map = true;
 	Timer timer;
 	
 	GamePanel() {
-		section = 0;
+		//init members
 		this.setPreferredSize(new Dimension(900,750));
 		this.setLayout(null);
-		round = 0;
+		round_in_play = 0;
 		spawnX = 0;
-		spawnY = 0;
+		spawnY = 245;
 		timer = new Timer(1,this);
-		round_1[0] = new bloon(3,0,245);
-		for (int i = 1; i < 5;++i) {
-			round_1[i] = new bloon(2,round_1[i-1].X-BLOON_SIZE,245);
-			locationsX[i] = spawnX - (i*BLOON_SIZE);
-			locationsY[i] = 245;
-		}
-		Timer t2 = new Timer(1,new ActionListener() {
-
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				// TODO Auto-generated method stub
-				
-			}
-			
-		});//use this to add bloons to the ARRAYLIST of a round 
+		round_collection = new ArrayList<bloon>();
+		build_round_collection(round_in_play);
 		
-		//round_map = new HashMap<Integer, bloon[]>();
 		start_round = new JButton();
 		start_round.setText("Start Round");
 		start_round.setBounds(675, 0, 125,50);//X Y width height
@@ -70,146 +56,140 @@ public class GamePanel extends JPanel implements ActionListener{
 			public void actionPerformed(ActionEvent e) {
 				running = true;
 				spawn_next_round();
+				timer.start();
 			}});
 		this.add(start_round);
-		//construct_rounds();
-		timer.start();
+
+		
+	}
+	
+	public void build_round_collection(int round_in) {
+		round_collection.add(new bloon(RED,spawnX-BLOON_SIZE,spawnY));
+		if (round_in == 0) {
+			for (int i = 1; i < 5; ++i) {
+				round_collection.add(new bloon(BLUE, round_collection.get(i-1).X-BLOON_SIZE, spawnY));
+			}
+		}
+		if (round_in == 1) {
+			for (int i = 1; i <= 3; ++i) {
+				round_collection.add(new bloon(RED, round_collection.get(i-1).X-BLOON_SIZE, spawnY));
+			}
+			for (int i = 1; i <= 4; ++i) {
+				round_collection.add(new bloon(BLUE, round_collection.get(i-1).X-BLOON_SIZE, spawnY));
+			}
+		}
+		
+
 	}
 	
 	public void spawn_next_round() {
-		++round;
-		repaint(); // THIS NEEDS TO CHANGE WE DONT WANT THE BUTTON TO REPAINT
+		repaint();
 	}
 	
-	/*public void construct_rounds() {
-		for (int i = 1; i <= NUM_ROUNDS; ++i) {
-			bloon[] b = new bloon[i+2];
-			for (int j = 0; j < b.length; ++j) {
-				b[j] = new bloon(1);
-			}
-			round_map.put(i, b);
-		}
-	}*/
 	
-	
-	public void paint(Graphics g) {
+	public void paint(Graphics g) { // CHANGE THIS PROCESS, BLOONS SHOULD HOLD OWN IMAGE (MAKE STATIC IMAGES)
 		super.paint(g);
 		Image image = new ImageIcon("D:\\DownloadsD\\map.png").getImage();
 		g.drawImage(image, 0,0,null);
-		/*if (running) {
-			bloon[] r = round_map.get(round);
-			for (int i = 0; i < r.length; ++i) {
-				g.fillOval(spawnX - (i*BLOON_SIZE), 0, BLOON_SIZE, BLOON_SIZE);
-			}
-		}*/
+		Image red = new ImageIcon("images/red_bloon.png").getImage();
+		Image blue = new ImageIcon("images/blue_bloon.png").getImage();
 		if (running) {
-			for (int i = 0; i < round_1.length; ++i) {
-				g.fillOval(round_1[i].X, round_1[i].Y, BLOON_SIZE, BLOON_SIZE);
+			for (int i = 0; i < round_collection.size(); ++i) {
+				g.drawImage(round_collection.get(i).rank == 1 ? red : blue, round_collection.get(i).X, round_collection.get(i).Y, BLOON_SIZE, BLOON_SIZE, null);
 			}
 		}
 		
 	}
 	
+	public void goRight(int i, int bound) {
+		if ((round_collection.get(i).X += round_collection.get(i).rank) >= bound) {
+			++round_collection.get(i).section;
+		}
+	}
+	
+	public void goUp(int i, int bound) {
+		if ((round_collection.get(i).Y -= round_collection.get(i).rank) <= bound) {
+			++round_collection.get(i).section;
+		}
+	}
+	
+	public void goDown(int i, int bound) {
+		if ((round_collection.get(i).Y += round_collection.get(i).rank) >= bound) {
+			++round_collection.get(i).section;
+		}
+	}
+	
+	public void goLeft(int i, int bound) {
+		if ((round_collection.get(i).X -= round_collection.get(i).rank) <= bound) {
+			++round_collection.get(i).section;
+		}
+	}
+	
 	public void move() {
-		for (int i = 0; i < round_1.length; ++i) {
-			switch (round_1[i].section) {
+		for (int i = 0; i < round_collection.size(); ++i) {
+			switch (round_collection.get(i).section) {
 			case 0: {
-				round_1[i].X += round_1[i].rank;
-				if (round_1[i].X >= 135) {
-					++round_1[i].section;
-				}
+				goRight(i , 135);
 				break;
 			}
 			case 1: {
-				round_1[i].Y -= round_1[i].rank;
-				if (round_1[i].Y <= 115) {
-					++round_1[i].section;
-				}
+				goUp(i, 115);
 				break;
 			}
 			case 2: {
-				round_1[i].X += round_1[i].rank;
-				if (round_1[i].X >= 246) {
-					++round_1[i].section;
-				}
+				goRight(i,246);
 				break;
 			}
 			case 3: {
-				round_1[i].Y += round_1[i].rank;
-				if (round_1[i].Y >= 367) {
-					++round_1[i].section;
-				}
+				goDown(i, 367);
 				break;
 			}
 			case 4: {
-				round_1[i].X -= round_1[i].rank;
-				if (round_1[i].X <= 110) {
-					++round_1[i].section;
-				}
+				goLeft(i, 110);
 				break;
 			}
 			case 5: {
-				round_1[i].Y += round_1[i].rank;
-				if (round_1[i].Y >= 455) {
-					++round_1[i].section;
-				}
+				goDown(i, 455);
 				break;
 			}
 			case 6: {
-				round_1[i].X += round_1[i].rank;
-				if (round_1[i].X >=487) {
-					++round_1[i].section;
-				}
+				goRight(i, 487);
 				break;
 			}
 			case 7: {
-				round_1[i].Y -= round_1[i].rank;
-				if (round_1[i].Y <= 325) {
-					++round_1[i].section;
-				}
+				goUp(i, 325);
 				break;
 			}
 			case 8: {
-				round_1[i].X -= round_1[i].rank;
-				if (round_1[i].X <= 387) {
-					++round_1[i].section;
-				}
+				goLeft(i,387);
 				break;
 			}
 			case 9: {
-				round_1[i].Y -= round_1[i].rank;
-				if (round_1[i].Y <= 230) {
-					++round_1[i].section;
-				}
+				goUp(i,230);
 				break;
 			}
 			case 10: {
-				round_1[i].X += round_1[i].rank;
-				if (round_1[i].X >= 475) {
-					++round_1[i].section;
-				}
+				goRight(i, 475);
 				break;
 			}
 			case 11: {
-				round_1[i].Y -= round_1[i].rank;
-				if (round_1[i].Y <= 80) {
-					++round_1[i].section;
-				}
+				goUp(i, 80);
 				break;
 			}
 			case 12: {
-				round_1[i].X -= round_1[i].rank;
-				if (round_1[i].X<= 325) {
-					++round_1[i].section;
-				}
+				goLeft(i, 325);
 				break;
 			}
 			case 13: {
-				round_1[i].Y -= round_1[i].rank;
-				if (round_1[i].Y <= 0) {
-					++round_1[i].section;
-				}
+				goUp(i, 0);
 				break;
+			}
+			case 14: {
+				round_collection.remove(i);
+				if (round_collection.isEmpty()) {
+					timer.stop();
+					build_round_collection(++round_in_play);
+				}
 			}
 			}
 		}
@@ -220,7 +200,6 @@ public class GamePanel extends JPanel implements ActionListener{
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		move();
-		
 	}
 
 }
