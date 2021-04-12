@@ -1,4 +1,6 @@
+import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.event.ActionEvent;
@@ -7,6 +9,7 @@ import java.util.ArrayList;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 
@@ -20,6 +23,7 @@ public class GamePanel extends JPanel implements ActionListener{
 			section = 0;
 			X = X_in;
 			Y = Y_in;
+			sprite = red;
 		}
 		public int rank, section, X, Y;
 		public Image sprite;
@@ -31,17 +35,25 @@ public class GamePanel extends JPanel implements ActionListener{
 	final int NUM_ROUNDS = 1;
 	ArrayList<bloon> round_collection;
 	JButton start_round;
+	JButton dart_monke;
+	JLabel money;
 	public int round_in_play;
 	public int spawnX;
 	public int spawnY;
 	final public int BLOON_SIZE = 25;
 	public Boolean running = false;
 	Timer timer;
+	final Image red = new ImageIcon("images/red_bloon.png").getImage();
+	final Image blue = new ImageIcon("images/blue_bloon.png").getImage();
+	final Image map = new ImageIcon("D:\\DownloadsD\\map.png").getImage();
+	final ImageIcon cash = new ImageIcon("images/cash_icon.png");
+	final ImageIcon dart_monkey = new ImageIcon("images/dart_monkey.png");
 	
 	GamePanel() {
 		//init members
 		this.setPreferredSize(new Dimension(900,750));
 		this.setLayout(null);
+		this.setBackground(Color.white);
 		round_in_play = 0;
 		spawnX = 0;
 		spawnY = 245;
@@ -49,9 +61,23 @@ public class GamePanel extends JPanel implements ActionListener{
 		round_collection = new ArrayList<bloon>();
 		build_round_collection(round_in_play);
 		
+		//MENU stuff
+		dart_monke = new JButton(dart_monkey);
+		dart_monke.setBounds(675,50,50,45);
+		dart_monke.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				money.setText(String.valueOf(Integer.parseInt(money.getText()) - 150));
+			}
+			
+		});
+		money = new JLabel("750", cash, JLabel.CENTER);
+		money.setFont(new Font("SansSerif", Font.PLAIN, 30));
+		money.setBounds(675,0,125,50);
 		start_round = new JButton();
 		start_round.setText("Start Round");
-		start_round.setBounds(675, 0, 125,50);//X Y width height
+		start_round.setBounds(675, 465, 125,50);//X Y width height
 		start_round.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				running = true;
@@ -59,7 +85,9 @@ public class GamePanel extends JPanel implements ActionListener{
 				timer.start();
 			}});
 		this.add(start_round);
-
+		this.add(money);
+		this.add(dart_monke);
+		this.setVisible(true);
 		
 	}
 	
@@ -67,7 +95,7 @@ public class GamePanel extends JPanel implements ActionListener{
 		round_collection.add(new bloon(RED,spawnX-BLOON_SIZE,spawnY));
 		if (round_in == 0) {
 			for (int i = 1; i < 5; ++i) {
-				round_collection.add(new bloon(BLUE, round_collection.get(i-1).X-BLOON_SIZE, spawnY));
+				round_collection.add(new bloon(RED, round_collection.get(i-1).X-BLOON_SIZE, spawnY));
 			}
 		}
 		if (round_in == 1) {
@@ -89,17 +117,16 @@ public class GamePanel extends JPanel implements ActionListener{
 	
 	public void paint(Graphics g) { // CHANGE THIS PROCESS, BLOONS SHOULD HOLD OWN IMAGE (MAKE STATIC IMAGES)
 		super.paint(g);
-		Image image = new ImageIcon("D:\\DownloadsD\\map.png").getImage();
-		g.drawImage(image, 0,0,null);
-		Image red = new ImageIcon("images/red_bloon.png").getImage();
-		Image blue = new ImageIcon("images/blue_bloon.png").getImage();
+		g.drawImage(map, 0,0,null);
 		if (running) {
 			for (int i = 0; i < round_collection.size(); ++i) {
-				g.drawImage(round_collection.get(i).rank == 1 ? red : blue, round_collection.get(i).X, round_collection.get(i).Y, BLOON_SIZE, BLOON_SIZE, null);
+				g.drawImage(round_collection.get(i).sprite, round_collection.get(i).X, round_collection.get(i).Y, BLOON_SIZE, BLOON_SIZE, null);
 			}
 		}
 		
 	}
+	
+	//BLOONS SHOULD MOVE BASED ON SPEED NOT RANK SEARCH WIKI
 	
 	public void goRight(int i, int bound) {
 		if ((round_collection.get(i).X += round_collection.get(i).rank) >= bound) {

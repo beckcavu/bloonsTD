@@ -11,8 +11,8 @@ public class GameFrame extends JFrame{
 		setLocationRelativeTo(null);
 		setTitle("bloons TD");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setVisible(true);
-		setResizable(false);
+		setResizable(true);
 		add(new GamePanel());
+		setVisible(true);
 	}
 }
