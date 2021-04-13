@@ -4,13 +4,17 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
+import java.awt.Polygon;
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -30,69 +34,84 @@ public class GamePanel extends JPanel implements ActionListener{
 			section = 0;
 			X = X_in;
 			Y = Y_in;
-			sprite = rank == 1 ? red : blue;
+			sprite = rank == 1 ? RED_BLOON_SPRITE : BLUE_BLOON_SPRITE; //This is bad, need a better system 
 		}
 		public int rank, section, X, Y;
 		public Image sprite;
-	}
+	} 
+	
+	//super for all money types
 	public class monkey_models {
 		public int X;
 		public int Y;
 		public Image sprite;
-		public JLabel model;
 	}
+	
+	//represents one dm
 	public class dart_monkey_model extends monkey_models {
 		dart_monkey_model() {
 			X = 675;
 			Y = 50;
-			sprite = dart_monkey.getImage();
-			model = new JLabel();
-			model.setIcon(dart_monkey);
+			sprite = DM_SPRITE.getImage();
 		}
 	}
 	
-	//members
-	final int RED = 1;
-	final int BLUE = 2;
-	final int NUM_ROUNDS = 1;
-	ArrayList<bloon> round_collection;
-	ArrayList<monkey_models> monkeys;
-	ArrayList<JLabel> monkey_labels;
-	JButton start_round;
-	JButton dart_monke;
-	JLabel money;
-	public int round_in_play;
-	public int spawnX;
-	public int spawnY;
+	//MEMBERS
+	//<-----FINALS---->
+	final ArrayList<Integer> RANKS = new ArrayList<Integer>(Arrays.asList(1,2,3,4,5,6)); //ranks: red --> blue --> green --> yellow --> black --> white
+	final int NUM_ROUNDS = 50;
+	final int COST_OF_DM = 200;
 	final public int BLOON_SIZE = 30;
-	public Boolean running = false;
-	public Boolean model;
-	Timer timer;
-	final Image red = new ImageIcon("images/red_bloon.png").getImage();
-	final Image blue = new ImageIcon("images/blue_bloon.png").getImage();
-	final Image map = new ImageIcon("D:\\DownloadsD\\map.png").getImage();
-	final ImageIcon cash = new ImageIcon("images/cash_icon.png");
-	final ImageIcon dart_monkey = new ImageIcon("images/dart_monkey.png");
+	final Image RED_BLOON_SPRITE = new ImageIcon("images/red_bloon.png").getImage();
+	final Image BLUE_BLOON_SPRITE = new ImageIcon("images/blue_bloon.png").getImage();
+	final Image MAP_IMAGE = new ImageIcon("D:\\DownloadsD\\map.png").getImage();
+	final ImageIcon CASH_IMAGE = new ImageIcon("images/cash_icon.png");
+	final ImageIcon DM_SPRITE = new ImageIcon("images/dart_monkey.png");
+	//<---FINALS--->
+	
+
+	ArrayList<bloon> round_collection;	//Represents what bloons are in a round
+
+	ArrayList<monkey_models> monkeys;	//represents what monkeys are in play
+
+	JButton start_round;	//buttons to repaint new round_collection once empty
+
+	JButton dart_monkey_button;	//button to place and buy dm
+
+	JLabel money;	//shows how much money is available
+
+	Timer timer;	//repaint refresher
+	
+
+	public int round_in_play; // round happening
+	public int spawnX; //bloon spawn point X
+	public int spawnY; // ... Y
+
+	public Boolean running = false; // is a round happening, must be init before paint
+	public Boolean model_placing; // is a monkey being placed (CHECK IF THIS IS BEING USED)
+	
+
 	
 	GamePanel() {
 		//init members
 		this.setPreferredSize(new Dimension(900,750));
 		this.setLayout(null);
 		this.setBackground(Color.white);
+		
 		round_in_play = 0;
-		model = false;
+		model_placing = false;
 		spawnX = 0;
 		spawnY = 245;
 		timer = new Timer(1,this);
 		round_collection = new ArrayList<bloon>();
 		monkeys = new ArrayList<monkey_models>();
-		monkey_labels = new ArrayList<JLabel>();
+		
 		build_round_collection(round_in_play);
 		
 		//MENU stuff
-		dart_monke = new JButton(dart_monkey);
-		dart_monke.setBounds(675,50,50,45);
-		dart_monke.addMouseListener(new MouseListener() {
+		dart_monkey_button = new JButton(DM_SPRITE);
+		dart_monkey_button.setBounds(675,50,50,45);
+		dart_monkey_button.addMouseListener(new MouseListener() {
 
 			@Override
 			//must be overriden, does nothing
@@ -105,13 +124,12 @@ public class GamePanel extends JPanel implements ActionListener{
 			public void mousePressed(MouseEvent e) {
 				dart_monkey_model bob = new dart_monkey_model();
 				monkeys.add(bob);
-				monkey_labels.add(bob.model);
 			}
 
 			@Override
 			public void mouseReleased(MouseEvent e) {
-				money.setText(String.valueOf(Integer.parseInt(money.getText()) - 150));
-				model = false;
+				money.setText(String.valueOf(Integer.parseInt(money.getText()) - COST_OF_DM)); // change this to cost of monkey
+				model_placing = false;
 			}
 
 			@Override
@@ -129,11 +147,12 @@ public class GamePanel extends JPanel implements ActionListener{
 			}
 		
 		});
-		dart_monke.addMouseMotionListener(new MouseMotionListener() {
+		dart_monkey_button.addMouseMotionListener(new MouseMotionListener() {
+
 
 			@Override
 			public void mouseDragged(MouseEvent e) {
-				model = true;
+				model_placing = true;
 				moveModel(e.getX(),e.getY());
 			}
 
@@ -142,9 +161,11 @@ public class GamePanel extends JPanel implements ActionListener{
 				//must be here, does nothing
 			}
 		});
-		money = new JLabel("750", cash, JLabel.CENTER);
+		
+		money = new JLabel("750", CASH_IMAGE, JLabel.CENTER);
 		money.setFont(new Font("SansSerif", Font.PLAIN, 30));
 		money.setBounds(675,0,125,50);
+	
 		start_round = new JButton();
 		start_round.setText("Start Round");
 		start_round.setBounds(675, 465, 125,50);//X Y width height
@@ -154,9 +175,10 @@ public class GamePanel extends JPanel implements ActionListener{
 				spawn_next_round();
 				timer.start();
 			}});
+		
 		this.add(start_round);
 		this.add(money);
-		this.add(dart_monke);
+		this.add(dart_monkey_button);
 		this.setVisible(true);
 		
 	}
@@ -167,20 +189,20 @@ public class GamePanel extends JPanel implements ActionListener{
 		repaint();
 	}
 	
-	
+	//NEEDS TO BE CHANGED. MAKE THIS A SEMI RANDOM EVENT TO GEN 50 ROUNDS
 	public void build_round_collection(int round_in) {
-		round_collection.add(new bloon(BLUE,spawnX-BLOON_SIZE,spawnY));
+		round_collection.add(new bloon(RANKS.get(0),spawnX-BLOON_SIZE,spawnY));
 		if (round_in == 0) {
 			for (int i = 1; i < 5; ++i) {
-				round_collection.add(new bloon(RED, round_collection.get(i-1).X-BLOON_SIZE, spawnY));
+				round_collection.add(new bloon(RANKS.get(0), round_collection.get(i-1).X-BLOON_SIZE, spawnY));
 			}
 		}
 		if (round_in == 1) {
 			for (int i = 1; i <= 3; ++i) {
-				round_collection.add(new bloon(RED, round_collection.get(i-1).X-BLOON_SIZE, spawnY));
+				round_collection.add(new bloon(RANKS.get(0), round_collection.get(i-1).X-BLOON_SIZE, spawnY));
 			}
 			for (int i = 1; i <= 4; ++i) {
-				round_collection.add(new bloon(BLUE, round_collection.get(i-1).X-BLOON_SIZE, spawnY));
+				round_collection.add(new bloon(RANKS.get(1), round_collection.get(i-1).X-BLOON_SIZE, spawnY));
 			}
 		}
 		
@@ -195,7 +217,8 @@ public class GamePanel extends JPanel implements ActionListener{
 	public void paint(Graphics g) {
 		super.paint(g);
 		Graphics2D g2 = (Graphics2D) g;
-		g.drawImage(map, 0,0,null);
+		
+		g.drawImage(MAP_IMAGE, 0,0,null);
 		AffineTransform oldForm = g2.getTransform();
 		if (running) {
 			for (int i = 0; i < round_collection.size(); ++i) {
@@ -205,7 +228,15 @@ public class GamePanel extends JPanel implements ActionListener{
 		}
 		for(int i = 0; i < monkeys.size(); ++i) {
 			if (running) {
+				Rectangle first_bloon = new Rectangle();
+				Rectangle monkey_to_check = new Rectangle();
+				first_bloon.setRect(round_collection.get(0).X, round_collection.get(0).Y, BLOON_SIZE, BLOON_SIZE);
+				System.out.println("getting monkey");
+				monkey_to_check.setRect(monkeys.get(i).X+45-(4*BLOON_SIZE), monkeys.get(i).Y+45-(4*BLOON_SIZE), 8*BLOON_SIZE, 8*BLOON_SIZE);
+				System.out.println("got it");
+				if (first_bloon.intersects(monkey_to_check)) {
 				g2.rotate(Math.atan2((double)round_collection.get(0).Y - (double)monkeys.get(i).Y, (double)round_collection.get(0).X-(double)monkeys.get(i).X)+Math.toRadians(90),monkeys.get(i).X+45, monkeys.get(i).Y+45);
+				}
 			}
 			g2.drawImage(monkeys.get(i).sprite, monkeys.get(i).X, monkeys.get(i).Y, 90,90, null);
 			g2.setTransform(oldForm);
